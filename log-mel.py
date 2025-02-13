@@ -20,12 +20,7 @@ def process_audio(file_path):
     # Tính delta và delta-delta
     delta = librosa.feature.delta(log_mel)
     delta_delta = librosa.feature.delta(log_mel, order=2)
-
-    # Chuẩn hóa từng kênh về [0, 1]
-    log_mel_norm = (log_mel - log_mel.min()) / (log_mel.max() - log_mel.min())
-    delta_norm = (delta - delta.min()) / (delta.max() - delta.min())
-    delta_delta_norm = (delta_delta - delta_delta.min()) / (delta_delta.max() - delta_delta.min())
-
+    
     # Kết hợp các kênh thành ảnh RGB
     img_rgb = np.stack([log_mel_norm, delta_norm, delta_delta_norm], axis=-1)
 
