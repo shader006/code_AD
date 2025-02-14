@@ -10,6 +10,7 @@ os.makedirs(output_folder, exist_ok=True)
 def process_audio(file_path):
     # Tải file âm thanh
     y, sr = librosa.load(file_path, sr=None)
+    
     # Trích xuất log mel spectrogram
     n_mels = 224
     hop_length = 1024
