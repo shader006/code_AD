@@ -2,13 +2,25 @@ import librosa
 import numpy as np
 import cv2
 import os
+from tqdm import tqdm  # Hiển thị tiến trình
 
-input_folder = r"D:\code\python\ADReSS-IS2020-data\test\Normalised_audio-chunks"  # Thư mục chứa file .wav
-output_folder = "output_images_rgb"  # Thư mục lưu ảnh RGB
-os.makedirs(output_folder, exist_ok=True)
+# Định nghĩa thư mục đầu vào
+input_train_folder_CC = r"D:\code\python\ADReSS-IS2020-train\ADReSS-IS2020-data\train\Full_wave_enhanced_audio\cc"   # input for training cc 
+input_train_folder_CD = r"D:\code\python\ADReSS-IS2020-train\ADReSS-IS2020-data\train\Full_wave_enhanced_audio\cd"   # input for training cd
+input_test_folder = r"D:\code\python\ADReSS-IS2020-test\ADReSS-IS2020-data\test\Full_wave_enhanced_audio" #input for test
+
+# Định nghĩa thư mục đầu ra
+output_train_folder_CC = "output_images_rgb/train_CC"  # tên thư mực output training
+output_train_folder_CD = "output_images_rgb/train_CD"  # tên thư mực output training
+output_test_folder = "output_images_rgb/test" # tên thư mực output test
+
+# Tạo thư mục đầu ra nếu chưa có
+os.makedirs(output_train_folder_CC, exist_ok=True)
+os.makedirs(output_train_folder_CD, exist_ok=True)
+os.makedirs(output_test_folder, exist_ok=True)
 
 def process_audio(file_path):
-    # Tải file âm thanh
+    """Xử lý file âm thanh và trả về ảnh RGB"""
     y, sr = librosa.load(file_path, sr=None)
     
     # Trích xuất log mel spectrogram
@@ -21,18 +33,22 @@ def process_audio(file_path):
     # Tính delta và delta-delta
     delta = librosa.feature.delta(log_mel)
     delta_delta = librosa.feature.delta(log_mel, order=2)
-    
-    # Kết hợp các kênh thành ảnh RGB
-    img_rgb = np.stack([log_mel_norm, delta_norm, delta_delta_norm], axis=-1)
 
-    # Chuyển đổi giá trị sang [0, 255] và kiểu uint8
-    img_rgb = (255 * img_rgb).astype(np.uint8)
+    # Chuyển giá trị về khoảng [0, 255]
+    log_mel = np.interp(log_mel, (log_mel.min(), log_mel.max()), (0, 255))
+    delta = np.interp(delta, (delta.min(), delta.max()), (0, 255))
+    delta_delta = np.interp(delta_delta, (delta_delta.min(), delta_delta.max()), (0, 255))
+
+    # Kết hợp các kênh thành ảnh RGB
+    img_rgb = np.stack([log_mel, delta, delta_delta], axis=-1).astype(np.uint8)
 
     return img_rgb
 
-# Duyệt qua các file trong thư mục đầu vào
-for file_name in os.listdir(input_folder):
-    if file_name.endswith(".wav"):
+def process_folder(input_folder, output_folder):
+    """Duyệt qua thư mục đầu vào và xử lý các file .wav"""
+    wav_files = [f for f in os.listdir(input_folder) if f.endswith(".wav")]
+
+    for file_name in tqdm(wav_files, desc=f"Đang xử lý {os.path.basename(input_folder)}", unit="file"):
         file_path = os.path.join(input_folder, file_name)
 
         # Xử lý file âm thanh và tạo ảnh RGB
@@ -45,6 +61,9 @@ for file_name in os.listdir(input_folder):
         output_path = os.path.join(output_folder, file_name.replace(".wav", ".png"))
         cv2.imwrite(output_path, img_resized)
 
-        print(f"✔ Đã xử lý: {file_name} → {output_path}")
+# Xử lý cả hai thư mục train và test
+process_folder(input_train_folder_CC, output_train_folder_CC)
+process_folder(input_train_folder_CD, output_train_folder_CD)
+process_folder(input_test_folder, output_test_folder)
 
 print("\n🎉 Xong! Tất cả các file .wav đã được chuyển thành ảnh RGB.")
